@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ucl.dao.cluster.OrderDao">
+    <resultMap id="BaseResultMap" type="com.ucl.model.Order">
+        <result column="id" property="id" />
+        <result column="serialNumber" property="serialNumber" />
+        <result column="departmentId" property="departmentId" />
+    </resultMap>
+
+    <parameterMap id="Order" type="com.ucl.model.Order"/>
+
+    <sql id="Base_Column_List">
+        id, serialNumber, departmentId
+    </sql>
+
+    <select id="findBySerialNumber" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List" />
+        from order_basic
+        where serialNumber = #{serialNumber}
+    </select>
+
+    <select id="find" resultType="com.ucl.model.Order" parameterType="java.util.Map">
+        SELECT
+            t1.serialNumber serialNumber,
+            t1.departmentName departmentName,
+            t12.code departmentCode,
+            (CASE WHEN t1.departmentType='TypeForOrder@Agent' THEN '代理订单' ELSE
+                (CASE WHEN t1.departmentType='TypeForOrder@Network' THEN '网点订单' ELSE (
+                    (CASE WHEN t1.departmentType='TypeForOrder@Online_retailers' THEN '电商订单' ELSE t1.departmentType END)
+                ) END)
+            END) orderType,
+            t5.`name` staffDept,
+            date_format(t1.createTime, '%Y-%m-%d %H:%m:%d') createDate,
+            date_format(t1.startDate, '%Y-%m-%d') startDate,
+            date_format(t1.endDate, '%Y-%m-%d') endDate,
+            t1.useDays useDays,
+            t1.packageName packageName,
+            t10.dicValue packageType,
+            (t11.price / 100) packagePrice,
+            t1.customerName customerName,
+            t1.customerPhone customerPhone,
+            (CASE WHEN t1.orderStatus = 'OrderStatus@camcel' THEN '取消' ELSE
+                    (CASE WHEN t1.orderStatus = 'OrderStatus@unsub' THEN '退订' ELSE
+                            (CASE WHEN t1.orderStatus = 'OrderStatus@normal' THEN '正常' ELSE
+                                    (CASE WHEN t1.orderStatus = 'OrderStatus@free' THEN '免费' ELSE
+                                        (CASE WHEN t1.orderStatus = 'OrderStatus@refund' THEN '退款' ELSE
+                                            (CASE WHEN t1.orderStatus = 'OrderStatus@invalid' THEN '无效' ELSE
+                                            (t1.orderStatus)
+                                        END)
+                                    END)
+                                END)
+                            END)
+                        END)
+                END) orderStatus,
+            (CASE WHEN t1.orderProgress = 'OrderProgress@receive' THEN '待收款' ELSE
+                (CASE WHEN t1.orderProgress = 'OrderProgress@deliver' THEN '待发货' ELSE
+                    (CASE WHEN t1.orderProgress = 'OrderProgress@return' THEN '待归还' ELSE
+                        (CASE WHEN t1.orderProgress = 'OrderProgress@settlement' THEN '待结算' ELSE
+                            (CASE WHEN t1.orderProgress = 'OrderProgress@settlemented' THEN '已结算' ELSE
+                                t1.orderProgress
+                            END)
+                        END)
+                    END)
+                END)
+                END
+            ) orderProgress,
+            (t2.depositAmount / 100) depositAmount,
+            (t2.rentAmount / 100) rentAmount,
+            (IFNULL(t2.releRentAmount, 0) / 100) releRentAmount,
+            (IFNULL(t2.expressAmount, 0) / 100) expressAmount,
+            (IFNULL(t2.deliverAdvanceAmount, 0) / 100) deliverAdvanceAmount,
+            (IFNULL(t8.refundPrice, 0) / 100) refundPrice,
+            (((IFNULL(t2.rentAmount, 0) + IFNULL(t2.releRentAmount, 0) + IFNULL(t2.expressAmount, 0) +
+            IFNULL(t2.deliverAdvanceAmount, 0) - IFNULL(t8.refundPrice, 0)) / 100)) receiveAmount,
+            CONCAT("'", t4.imei) imei,
+            (
+                CASE WHEN t2.payType = 'Pay@wx' THEN '微信支付' ELSE
+                    (CASE WHEN t2.payType = 'Pay@alipay' THEN '支付宝支付' ELSE
+                            (CASE WHEN t2.payType = 'OrderDepositMode@account' THEN '企业押金' ELSE
+                                    (CASE WHEN t2.payType = 'Pay@POS' THEN 'POS支付' ELSE
+                                        (CASE WHEN t2.payType = 'Pay@credit' THEN '信用卡预授权' ELSE
+                                            t2.payType
+                                        END)
+                                    END)
+                                END)
+                        END)
+                END) rentPayType,
+            CONCAT("'", t2.transactionId) depositTransactionId,
+            (t2.rentReceivedAmount / 100) rentReceivedAmount,
+            CONCAT("'", t2.transactionId) rentTransactionId,
+            t1.createUserName createUserName,
+            t8.operationDate refundDate,
+            t8.operationReason refundReason,
+            t4.imeiPositionName imeiPositionName,
+            (CASE WHEN t4.takeType='TakeType@cabinet' THEN '机柜' ELSE
+                (CASE WHEN t4.takeType='TakeType@express' THEN '快递' ELSE
+                    (CASE WHEN t4.takeType='TakeType@point' THEN '网点' ELSE
+                        (CASE WHEN t4.takeType='TakeType@inventory' THEN '代理商库存' ELSE t4.takeType END)
+                    END)
+                END)
+            END) takeType,
+            t13.expressCode expressCode,
+            (CASE WHEN t13.expressPayType='ExpressPayMode@send' THEN '寄付' ELSE
+                (CASE WHEN t13.expressPayType='ExpressPayMode@arrival' THEN '到付' ELSE t13.expressPayType END)
+            END) expressPayType,
+            t4.deliverDate deliverDate,
+            t4.deliverUserName deliverUserName
+        FROM
+            order_basic t1
+        LEFT JOIN (SELECT orderId,
+        (CASE WHEN feeType='OrderFeeType@deposit' THEN payType ELSE payType END) payType,
+        (CASE WHEN feeType='OrderFeeType@deposit' THEN transactionId ELSE transactionId END) transactionId,
+        SUM(CASE WHEN feeType='OrderFeeType@deposit' THEN receivableAmount ELSE 0 END) depositAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@rent' THEN receivableAmount ELSE 0 END) rentAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@rent' THEN  receivedAmount ELSE 0 END) rentReceivedAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@reletRent' THEN receivableAmount ELSE 0 END) releRentAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@express' THEN receivableAmount ELSE 0 END) expressAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@DeliverAdvance' THEN receivableAmount ELSE 0 END) deliverAdvanceAmount
+        FROM order_pay WHERE isDelete='0' AND feeType IN ('OrderFeeType@deposit', 'OrderFeeType@rent', 'OrderFeeType@reletRent', 'OrderFeeType@DeliverAdvance', 'OrderFeeType@express')
+        GROUP BY orderId) t2 ON t1.id=t2.orderId
+        LEFT JOIN (SELECT orderId, SUM(refundDays) refundDays, SUM(refundPrice) refundPrice, MAX(createTime), operationDate, operationReason
+        FROM order_refund WHERE refundStatus = 'RefundStatus@pass' AND isDelete = '0' GROUP BY orderId) t8 ON t1.id = t8.orderId
+        LEFT JOIN order_deliver t4 ON t1.id = t4.orderId
+        AND t4.isDelete = '0'
+        LEFT JOIN conf_dictionary t10 ON t1.packageType = t10.typeAndKey
+        AND t10.isDelete = '0'
+        AND t10.dicStatus = 'Common@valid'
+        AND t10.langType = 'en-US'
+        LEFT JOIN sys_package t11 ON t1.packageId=t11.id
+        AND t11.isDelete='0'
+        LEFT JOIN department t12 ON t1.departmentId=t12.id
+        AND t12.isDelete='0'
+        LEFT JOIN order_deliver_express t13 ON t1.id=t13.orderId
+        AND t13.isDelete = '0'
+        LEFT JOIN (
+            SELECT
+                a.id id,
+                b.`name` `name`
+            FROM
+                `user` a,
+                department b
+            WHERE
+                a.deptID = b.id
+        ) t5 ON t1.servicestaffId = t5.id
+        WHERE t1.isDelete = '0'
+        <if test="startDate!=null">
+            <![CDATA[ AND DATE_FORMAT(t1.startDate, '%Y-%m-%d %H:%m:%s')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%m:%s')   ]]>
+        </if>
+        <if test="endDate!=null">
+            <![CDATA[ AND DATE_FORMAT(t1.startDate, '%Y-%m-%d %H:%m:%s')<=  DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%m:%s')   ]]>
+        </if>
+        <if test="startRow>=0 and pageSize>=1">
+            LIMIT #{startRow}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="findCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+        SELECT COUNT(1)
+        FROM
+        order_basic t1
+        LEFT JOIN (SELECT orderId,
+        (CASE WHEN feeType='OrderFeeType@deposit' THEN payType ELSE payType END) payType,
+        (CASE WHEN feeType='OrderFeeType@deposit' THEN transactionId ELSE transactionId END) transactionId,
+        SUM(CASE WHEN feeType='OrderFeeType@deposit' THEN receivableAmount ELSE 0 END) depositAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@rent' THEN receivableAmount ELSE 0 END) rentAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@rent' THEN  receivedAmount ELSE 0 END) rentReceivedAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@reletRent' THEN receivableAmount ELSE 0 END) releRentAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@express' THEN receivableAmount ELSE 0 END) expressAmount,
+        SUM(CASE WHEN feeType='OrderFeeType@DeliverAdvance' THEN receivableAmount ELSE 0 END) deliverAdvanceAmount
+        FROM order_pay WHERE isDelete='0' AND feeType IN ('OrderFeeType@deposit', 'OrderFeeType@rent', 'OrderFeeType@reletRent', 'OrderFeeType@DeliverAdvance', 'OrderFeeType@express')
+        GROUP BY orderId) t2 ON t1.id=t2.orderId
+        LEFT JOIN (SELECT orderId, SUM(refundDays) refundDays, SUM(refundPrice) refundPrice, MAX(createTime), operationDate, operationReason
+        FROM order_refund WHERE refundStatus = 'RefundStatus@pass' AND isDelete = '0' GROUP BY orderId) t8 ON t1.id = t8.orderId
+        LEFT JOIN order_deliver t4 ON t1.id = t4.orderId
+        AND t4.isDelete = '0'
+        LEFT JOIN conf_dictionary t10 ON t1.packageType = t10.typeAndKey
+        AND t10.isDelete = '0'
+        AND t10.dicStatus = 'Common@valid'
+        AND t10.langType = 'en-US'
+        LEFT JOIN sys_package t11 ON t1.packageId=t11.id
+        AND t11.isDelete='0'
+        LEFT JOIN department t12 ON t1.departmentId=t12.id
+        AND t12.isDelete='0'
+        LEFT JOIN order_deliver_express t13 ON t1.id=t13.orderId
+        AND t13.isDelete = '0'
+        LEFT JOIN (
+        SELECT
+        a.id id,
+        b.`name` `name`
+        FROM
+        `user` a,
+        department b
+        WHERE
+        a.deptID = b.id
+        ) t5 ON t1.servicestaffId = t5.id
+        WHERE t1.isDelete = '0'
+        <if test="startDate!=null">
+            <![CDATA[ AND DATE_FORMAT(t1.startDate, '%Y-%m-%d %H:%m:%s')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%m:%s')   ]]>
+        </if>
+        <if test="endDate!=null">
+            <![CDATA[ AND DATE_FORMAT(t1.startDate, '%Y-%m-%d %H:%m:%s')<=  DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%m:%s')   ]]>
+        </if>
+    </select>
+</mapper>
