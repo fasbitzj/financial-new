@@ -144,11 +144,11 @@
         </dependency>
 
         <!-- css js 路径定位问题 -->
-        <dependency>
+        <!--<dependency>
             <groupId>org.webjars</groupId>
             <artifactId>jquery</artifactId>
             <version>2.1.4</version>
-        </dependency>
+        </dependency>-->
     </dependencies>
 
     <repositories>
@@ -211,7 +211,8 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*.properties</exclude>
-                        <exclude>**/*.xml</exclude>
+                        <exclude>**/log4j2.xml</exclude>
+                        <exclude>**/logback.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -238,19 +239,71 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
+
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <!--只执行一次-->
+                            &lt;!&ndash;只执行一次&ndash;&gt;
                             <goal>single</goal>
                         </goals>
                         <configuration>
-                            <descriptors>src/main/assembly/assembly.xml</descriptors>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/main/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly-dev</id>  <!--The identifier of this execution for labelling the goals during the build   标志-->
+                        <phase>package</phase>      <!--The build lifecycle phase to bind the goals in this execution to  指定其编译阶段-->
+                        <goals>
+                            <goal>single</goal>     <!--The goals to execute with the given configuration-->
+                        </goals>
+                        <configuration>
+                            <skipAssembly>${skipAssemblyDEV}</skipAssembly>   <!--profile声明参数调用-->
+                            <descriptors>
+                                <descriptor>src/main/assembly/dev/assembly.xml</descriptor>   <!--加载指定的assembly配置文件-->
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>make-assembly-uat</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <skipAssembly>${skipAssemblyUAT}</skipAssembly>
+                            <descriptors>
+                                <descriptor>src/main/assembly/uat/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>make-assembly-prod</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <skipAssembly>${skipAssemblyPROD}</skipAssembly>
+                            <descriptors>
+                                <descriptor>src/main/assembly/prod/assembly.xml</descriptor>
+                            </descriptors>
                         </configuration>
                     </execution>
                 </executions>
