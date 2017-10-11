@@ -20,6 +20,46 @@
         <spring-boot-version>1.5.3.RELEASE</spring-boot-version>
     </properties>
 
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <env.devMode>dev</env.devMode>
+                <skipAssemblyDEV>false</skipAssemblyDEV>
+                <skipAssemblyUAT>true</skipAssemblyUAT>
+                <skipAssemblyPROD>true</skipAssemblyPROD>
+            </properties>
+        </profile>
+        <profile>
+            <id>uat</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <env.devMode>uat</env.devMode>
+                <skipAssemblyDEV>true</skipAssemblyDEV>
+                <skipAssemblyUAT>false</skipAssemblyUAT>
+                <skipAssemblyPROD>true</skipAssemblyPROD>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>prod</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <env.devMode>prod</env.devMode>
+                <skipAssemblyDEV>true</skipAssemblyDEV>
+                <skipAssemblyUAT>true</skipAssemblyUAT>
+                <skipAssemblyPROD>false</skipAssemblyPROD>
+            </properties>
+        </profile>
+    </profiles>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
