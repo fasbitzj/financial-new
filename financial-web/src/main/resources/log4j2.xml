@@ -31,7 +31,7 @@
             <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY" />
             <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss z}] [logId:%X{logId}] [%X{RealClass}] [%-5level] %msg%xEx%n"/>
             <!--<JsonLayout/>-->
-            <Property name="bootstrap.servers">10.1.210.50:9092</Property>
+            <Property name="bootstrap.servers">192.168.88.128:9092</Property>
             <Property name="acks">0</Property>
             <Property name="compression.type">gzip</Property>
             <Property name="batch.size">16384</Property>
@@ -41,6 +41,12 @@
             <Property name="max.block.ms">5</Property>
             <Property name="retries">0</Property>
         </Kafka>
+
+        <appender name="ASYNCOUT" class="org.apache.log4j.AsyncAppender">
+            <param name="BufferSize" value="512" />
+            <param name="Blocking" value="false"/>
+            <appender-ref ref="KAFKA" />
+        </appender>
     </appenders>
     <!--然后定义logger，只有定义了logger并引入的appender，appender才会生效-->
     <loggers>
@@ -48,28 +54,31 @@
         <Root level="debug">
             <appender-ref ref="RollingFile"/>
             <appender-ref ref="Console"/>
-            <appender-ref ref="KAFKA"/>
+            <!--<appender-ref ref="ASYNCOUT"/>-->
+            <!--<appender-ref ref="KAFKA"/>-->
         </Root>
 
-        <AsyncLogger name="org.apache.kafka" level="ERROR" additivity="false">
-            <AppenderRef ref="Console" />
-            <AppenderRef ref="RollingFile" />
+        <AsyncLogger name="com.ucl" level="trace" includeLocation="true">
+            <AppenderRef ref="KAFKA"/>
         </AsyncLogger>
 
-        <AsyncLogger name="com.ucl.dao" level="DEBUG" additivity="false">
+        <Logger name="org.apache.kafka" level="ERROR" additivity="false">
             <AppenderRef ref="Console" />
             <AppenderRef ref="RollingFile" />
-            <appender-ref ref="KAFKA"/>
-        </AsyncLogger>
-        <AsyncLogger name="net.sf.log4jdbc" level="ERROR" additivity="true">
-            <AppenderRef ref="Console" />
-            <AppenderRef ref="RollingFile" />
-        </AsyncLogger>
+        </Logger>
 
-        <AsyncLogger name="com.ucl.dao" level="ERROR" additivity="true">
+        <Logger name="com.ucl.dao" level="DEBUG" additivity="false">
             <AppenderRef ref="Console" />
             <AppenderRef ref="RollingFile" />
-            <appender-ref ref="KAFKA"/>
-        </AsyncLogger>
+        </Logger>
+        <Logger name="net.sf.log4jdbc" level="ERROR" additivity="true">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFile" />
+        </Logger>
+
+        <Logger name="com.ucl.dao" level="ERROR" additivity="true">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFile" />
+        </Logger>
     </loggers>
 </configuration>
