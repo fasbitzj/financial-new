@@ -24,9 +24,9 @@ public class ApiController {
     @RequestMapping(value = "logger")
     public Object logger(Integer times) {
         if (null != times) {
-//            for (int j=0; j<times; j++) {
+            for (int j=0; j<times; j++) {
                 loggerTest(times);
-//            }
+            }
         } else {
             loggerTest(times);
         }
